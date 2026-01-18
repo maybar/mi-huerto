@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Calendar, FileText, ArrowRight } from 'lucide-react';
 import { supabase, Bancal, Cultivo, TipoCultivo, EventoCultivo } from '../lib/supabase';
+import LoginModal from './LoginModal';
 
 interface CropManagerProps {
   bancal: Bancal | null;
@@ -17,6 +18,8 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
   const [eventos, setEventos] = useState<EventoCultivo[]>([]);
   const [showEventForm, setShowEventForm] = useState<string | null>(null);
   const [showTransplantForm, setShowTransplantForm] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [formData, setFormData] = useState({
     tipo_cultivo_id: '',
@@ -37,6 +40,20 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
   useEffect(() => {
     loadTiposCultivo();
     loadAllBancales();
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription?.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -87,6 +104,10 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
   };
 
   const handleAddCrop = async () => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     if (!bancal || !formData.tipo_cultivo_id) return;
 
     const tipoCultivo = tiposCultivo.find(t => t.id === formData.tipo_cultivo_id);
@@ -120,6 +141,10 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
   };
 
   const handleUpdateCrop = async (cultivoId: string) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     const { error } = await supabase
       .from('cultivos')
       .update({
@@ -137,6 +162,10 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
   };
 
   const handleDeleteCrop = async (id: string) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     if (confirm('¿Eliminar este cultivo?')) {
       await supabase.from('cultivos').delete().eq('id', id);
       loadCultivos();
@@ -145,6 +174,10 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
   };
 
   const handleTransplant = async (cultivoId: string, targetBancalId: string) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     const targetBancal = todasLosBancales.find(b => b.id === targetBancalId);
     if (!targetBancal) return;
 
@@ -176,6 +209,10 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
   };
 
   const handleAddEvent = async (cultivoId: string) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     const { error } = await supabase.from('eventos_cultivo').insert({
       cultivo_id: cultivoId,
       ...eventFormData,
@@ -577,6 +614,17 @@ export default function CropManager({ bancal, onSelectCrop, onRefresh }: CropMan
         <p className="text-gray-500 text-center py-8">
           No hay cultivos en este bancal. ¡Añade el primero!
         </p>
+      )}
+
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={() => {
+            checkAuth();
+            setShowLoginModal(false);
+            setIsAdding(true);
+          }}
+        />
       )}
     </div>
   );

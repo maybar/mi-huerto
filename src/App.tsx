@@ -4,7 +4,6 @@ import GardenLayout from './components/GardenLayout';
 import CropManager from './components/CropManager';
 import CropInfo from './components/CropInfo';
 import CalendarView from './components/CalendarView';
-import Auth from './components/Auth';
 import { Bancal, Cultivo, supabase } from './lib/supabase';
 import { seedInitialData } from './utils/seedData';
 
@@ -20,6 +19,7 @@ function App() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    initializeApp();
     checkAuth();
   }, []);
 
@@ -29,23 +29,18 @@ function App() {
       if (session) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || null);
-        await initializeApp();
-      } else {
-        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error checking auth:', error);
-      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (session) {
           setIsAuthenticated(true);
           setUserEmail(session.user.email || null);
-          if (isLoading) await initializeApp();
         } else {
           setIsAuthenticated(false);
           setUserEmail(null);
@@ -76,10 +71,6 @@ function App() {
       setCurrentView('info');
     }
   };
-
-  if (!isAuthenticated) {
-    return <Auth onAuthSuccess={() => checkAuth()} />;
-  }
 
   if (isLoading) {
     return (
@@ -118,10 +109,6 @@ function App() {
             </div>
 
             <div className="flex gap-4 items-center">
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Bienvenido</p>
-                <p className="font-medium text-gray-900">{userEmail}</p>
-              </div>
               <nav className="flex gap-2">
                 <button
                   onClick={() => setCurrentView('garden')}
@@ -145,14 +132,21 @@ function App() {
                   <CalendarIcon size={20} />
                   Calendario
                 </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                >
-                  <LogOut size={20} />
-                  Salir
-                </button>
               </nav>
+              {isAuthenticated && (
+                <div className="flex gap-2 items-center pl-2 border-l border-gray-300">
+                  <div className="text-right">
+                    <p className="text-xs text-gray-600">Sesión activa</p>
+                    <p className="text-sm font-medium text-gray-900">{userEmail}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                  >
+                    <LogOut size={18} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Home } from 'lucide-react';
 import { supabase, Bancal, Cultivo } from '../lib/supabase';
+import LoginModal from './LoginModal';
 
 interface GardenLayoutProps {
   onSelectBancal: (bancal: Bancal) => void;
@@ -13,11 +14,27 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
   const [cultivos, setCultivos] = useState<Cultivo[]>([]);
   const [isAddingBancal, setIsAddingBancal] = useState(false);
   const [newBancalSide, setNewBancalSide] = useState<'izquierda' | 'derecha'>('izquierda');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    checkAuth();
     loadBancales();
     loadCultivos();
   }, [refreshTrigger]);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription?.unsubscribe();
+  }, []);
 
   const loadBancales = async () => {
     const { data } = await supabase
@@ -63,6 +80,10 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
 
   const handleDeleteBancal = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     if (confirm('¿Estás seguro de eliminar este bancal?')) {
       await supabase.from('bancales').delete().eq('id', id);
       loadBancales();
@@ -146,7 +167,13 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
           <h2 className="text-xl font-semibold text-gray-800">Huerto</h2>
           {!isAddingBancal && (
             <button
-              onClick={() => setIsAddingBancal(true)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setShowLoginModal(true);
+                } else {
+                  setIsAddingBancal(true);
+                }
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Plus size={18} />
@@ -293,6 +320,16 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
           </div>
         </div>
       </div>
+
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={() => {
+            checkAuth();
+            setIsAddingBancal(true);
+          }}
+        />
+      )}
     </div>
   );
 }
