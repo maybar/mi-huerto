@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Sprout, Calendar as CalendarIcon, Leaf } from 'lucide-react';
+import { Sprout, Calendar as CalendarIcon, Leaf, LogOut } from 'lucide-react';
 import GardenLayout from './components/GardenLayout';
 import CropManager from './components/CropManager';
 import CropInfo from './components/CropInfo';
 import CalendarView from './components/CalendarView';
-import { Bancal, Cultivo } from './lib/supabase';
+import Auth from './components/Auth';
+import { Bancal, Cultivo, supabase } from './lib/supabase';
 import { seedInitialData } from './utils/seedData';
 
 type View = 'garden' | 'calendar' | 'info';
@@ -15,9 +16,44 @@ function App() {
   const [selectedCrop, setSelectedCrop] = useState<Cultivo | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    initializeApp();
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsAuthenticated(true);
+        setUserEmail(session.user.email || null);
+        await initializeApp();
+      } else {
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          setIsAuthenticated(true);
+          setUserEmail(session.user.email || null);
+          if (isLoading) await initializeApp();
+        } else {
+          setIsAuthenticated(false);
+          setUserEmail(null);
+        }
+      }
+    );
+
+    return () => subscription?.unsubscribe();
   }, []);
 
   const initializeApp = async () => {
@@ -41,6 +77,10 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <Auth onAuthSuccess={() => checkAuth()} />;
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
@@ -51,6 +91,16 @@ function App() {
       </div>
     );
   }
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsAuthenticated(false);
+      setUserEmail(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
@@ -67,30 +117,43 @@ function App() {
               </div>
             </div>
 
-            <nav className="flex gap-2">
-              <button
-                onClick={() => setCurrentView('garden')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currentView === 'garden'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <Leaf size={20} />
-                Huerto
-              </button>
-              <button
-                onClick={() => setCurrentView('calendar')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currentView === 'calendar'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <CalendarIcon size={20} />
-                Calendario
-              </button>
-            </nav>
+            <div className="flex gap-4 items-center">
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Bienvenido</p>
+                <p className="font-medium text-gray-900">{userEmail}</p>
+              </div>
+              <nav className="flex gap-2">
+                <button
+                  onClick={() => setCurrentView('garden')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentView === 'garden'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <Leaf size={20} />
+                  Huerto
+                </button>
+                <button
+                  onClick={() => setCurrentView('calendar')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentView === 'calendar'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <CalendarIcon size={20} />
+                  Calendario
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                >
+                  <LogOut size={20} />
+                  Salir
+                </button>
+              </nav>
+            </div>
           </div>
         </div>
       </header>
