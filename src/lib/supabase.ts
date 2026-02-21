@@ -12,7 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export interface Bancal {
   id: string;
   nombre: string;
-  lado: 'izquierda' | 'derecha' | 'borde';
+  lado: 'izquierda' | 'derecha' | 'borde' | 'superior' | 'semillero';
   posicion: number;
   ancho: number;
   alto: number;
@@ -20,6 +20,7 @@ export interface Bancal {
   posicion_y: number;
   notas: string;
   activo: boolean;
+  fijo?: boolean;
   created_at: string;
 }
 

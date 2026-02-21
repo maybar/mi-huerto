@@ -206,6 +206,12 @@ export async function seedInitialData() {
   }
 
   const bancalesIniciales = [
+    // Bordes fijos (no se pueden eliminar)
+    { nombre: 'Borde Izquierdo', lado: 'izquierda', posicion: -1, ancho: 1.0, alto: 3.5, notas: 'Bancal fijo en el borde izquierdo', activo: true, fijo: true },
+    { nombre: 'Borde Superior', lado: 'superior', posicion: 0, ancho: 6.0, alto: 1.0, notas: 'Bancal fijo en la parte superior del huerto', activo: true, fijo: true },
+    { nombre: 'Borde Derecho', lado: 'derecha', posicion: -1, ancho: 1.0, alto: 3.5, notas: 'Bancal fijo en el borde derecho', activo: true, fijo: true },
+
+    // Bancales normales
     { nombre: 'Bancal A', lado: 'izquierda', posicion: 0, ancho: 1.2, alto: 3.0 },
     { nombre: 'Bancal B', lado: 'izquierda', posicion: 1, ancho: 1.2, alto: 3.0 },
     { nombre: 'Bancal C', lado: 'izquierda', posicion: 2, ancho: 1.2, alto: 3.0 },

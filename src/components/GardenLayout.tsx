@@ -85,8 +85,11 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
       return;
     }
     if (confirm('¿Estás seguro de eliminar este bancal?')) {
-      await supabase.from('bancales').delete().eq('id', id);
-      loadBancales();
+      const { error } = await supabase.from('bancales').delete().eq('id', id);
+      if (error) {
+        alert(error.message || 'No se pudo eliminar el bancal. Es posible que sea fijo y no se permita eliminarlo.');
+      }
+      await loadBancales();
     }
   };
 
@@ -105,8 +108,23 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
   };
 
   const semillero = bancales.find(b => b.lado === 'semillero');
-  const bancalesIzquierda = bancales.filter(b => b.lado === 'izquierda').sort((a, b) => a.posicion - b.posicion);
-  const bancalesDerecha = bancales.filter(b => b.lado === 'derecha').sort((a, b) => a.posicion - b.posicion);
+  const bordesSuperior = bancales.filter(b => b.lado === 'superior').sort((a, b) => a.posicion - b.posicion);
+
+  // Lado izquierdo: separa fijos de normales para mostrarlos claramente
+  const bancalesIzquierdaFijos = bancales
+    .filter(b => b.lado === 'izquierda' && !!b.fijo)
+    .sort((a, b) => a.posicion - b.posicion);
+  const bancalesIzquierda = bancales
+    .filter(b => b.lado === 'izquierda' && !b.fijo)
+    .sort((a, b) => a.posicion - b.posicion);
+
+  // Lado derecho: separa fijos de normales para mostrarlos claramente
+  const bancalesDerechaFijos = bancales
+    .filter(b => b.lado === 'derecha' && !!b.fijo)
+    .sort((a, b) => a.posicion - b.posicion);
+  const bancalesDerecha = bancales
+    .filter(b => b.lado === 'derecha' && !b.fijo)
+    .sort((a, b) => a.posicion - b.posicion);
 
   return (
     <div className="space-y-6">
@@ -162,6 +180,43 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
         </div>
       )}
 
+      {bordesSuperior.length > 0 && (
+        <div className="bg-gradient-to-b from-sky-50 to-sky-100 rounded-lg shadow p-4 border-2 border-sky-200 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800">Borde Superior</h2>
+            <p className="text-sm text-gray-600">Bancal fijo en la parte superior del huerto</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-3">
+            {bordesSuperior.map((b) => (
+              <div
+                key={b.id}
+                onClick={() => onSelectBancal(b)}
+                className={`p-3 border rounded-lg cursor-pointer mb-2 ${
+                  selectedBancalId === b.id ? 'border-green-600 bg-green-50 shadow-sm' : 'border-sky-200 bg-sky-50 hover:border-green-400'
+                }`}>
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="font-medium text-gray-800">{b.nombre}</h3>
+                  <button className="text-red-500 hover:text-red-700" disabled title="Bancal fijo: no se puede eliminar">
+                    <Trash2 size={14} className="opacity-50" />
+                  </button>
+                </div>
+
+                {getCultivosForBancal(b.id).length > 0 ? (
+                  <div className="text-sm text-gray-700">
+                    {getCultivosForBancal(b.id).map(c => (
+                      <div key={c.id} className="mb-1">{c.tipo_cultivo?.nombre} <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${getEstadoColor(c.estado)}`}>{c.estado}</span></div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">Sin cultivos</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-800">Huerto</h2>
@@ -213,6 +268,39 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
         <div className="grid grid-cols-[1fr_80px_1fr] gap-4">
           <div className="space-y-3">
             <div className="text-center font-semibold text-gray-700 mb-2">Lado Izquierdo</div>
+
+            {bancalesIzquierdaFijos.length > 0 && (
+              <div className="mb-3">
+                {bancalesIzquierdaFijos.map((b) => (
+                  <div
+                    key={b.id}
+                    onClick={() => onSelectBancal(b)}
+                    className={`p-3 border rounded-lg cursor-pointer mb-2 bg-slate-50 border-slate-200 ${
+                      selectedBancalId === b.id ? 'border-green-600 bg-green-50' : ''
+                    }`}>
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-medium text-gray-800">{b.nombre}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full">Fijo</span>
+                        <button className="text-red-500 hover:text-red-700" disabled title="Bancal fijo: no se puede eliminar">
+                          <Trash2 size={14} className="opacity-50" />
+                        </button>
+                      </div>
+                    </div>
+                    {getCultivosForBancal(b.id).length > 0 ? (
+                      <div className="text-sm text-gray-700">
+                        {getCultivosForBancal(b.id).map(c => (
+                          <div key={c.id} className="mb-1">{c.tipo_cultivo?.nombre} <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${getEstadoColor(c.estado)}`}>{c.estado}</span></div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Sin cultivos</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {bancalesIzquierda.map((bancal) => {
               const cultivosBancal = getCultivosForBancal(bancal.id);
               const isSelected = selectedBancalId === bancal.id;
@@ -232,8 +320,10 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
                     <button
                       onClick={(e) => handleDeleteBancal(bancal.id, e)}
                       className="text-red-500 hover:text-red-700"
+                      disabled={!!bancal.fijo}
+                      title={bancal.fijo ? 'Bancal fijo: no se puede eliminar' : 'Eliminar bancal'}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} className={bancal.fijo ? 'opacity-50' : ''} />
                     </button>
                   </div>
 
@@ -268,6 +358,39 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
 
           <div className="space-y-3">
             <div className="text-center font-semibold text-gray-700 mb-2">Lado Derecho</div>
+
+            {bancalesDerechaFijos.length > 0 && (
+              <div className="mb-3">
+                {bancalesDerechaFijos.map((b) => (
+                  <div
+                    key={b.id}
+                    onClick={() => onSelectBancal(b)}
+                    className={`p-3 border rounded-lg cursor-pointer mb-2 bg-slate-50 border-slate-200 ${
+                      selectedBancalId === b.id ? 'border-green-600 bg-green-50' : ''
+                    }`}>
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-medium text-gray-800">{b.nombre}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full">Fijo</span>
+                        <button className="text-red-500 hover:text-red-700" disabled title="Bancal fijo: no se puede eliminar">
+                          <Trash2 size={14} className="opacity-50" />
+                        </button>
+                      </div>
+                    </div>
+                    {getCultivosForBancal(b.id).length > 0 ? (
+                      <div className="text-sm text-gray-700">
+                        {getCultivosForBancal(b.id).map(c => (
+                          <div key={c.id} className="mb-1">{c.tipo_cultivo?.nombre} <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${getEstadoColor(c.estado)}`}>{c.estado}</span></div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Sin cultivos</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {bancalesDerecha.map((bancal) => {
               const cultivosBancal = getCultivosForBancal(bancal.id);
               const isSelected = selectedBancalId === bancal.id;
@@ -287,8 +410,10 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
                     <button
                       onClick={(e) => handleDeleteBancal(bancal.id, e)}
                       className="text-red-500 hover:text-red-700"
+                      disabled={!!bancal.fijo}
+                      title={bancal.fijo ? 'Bancal fijo: no se puede eliminar' : 'Eliminar bancal'}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} className={bancal.fijo ? 'opacity-50' : ''} />
                     </button>
                   </div>
 
