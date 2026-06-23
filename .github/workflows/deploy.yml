@@ -2,6 +2,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+
+# Give the workflow permission to push (contents) and to use Pages if needed
+permissions:
+  contents: write
+  pages: write
+  
 jobs:
   deploy:
     runs-on: ubuntu-latest
