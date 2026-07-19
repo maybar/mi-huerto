@@ -7,7 +7,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Con schema public (por defecto) se mandan las peticiones al cajón por defecto, que es el que tiene los datos de los cultivos y bancales. Con schema nuevo_proyecto se mandan las peticiones al cajón nuevo_proyecto, que es el que tiene los datos de los cultivos y bancales del nuevo proyecto.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Con schema nuevo_proyecto se mandan las peticiones al cajón nuevo_proyecto, que es el que tiene los datos de los cultivos y bancales del nuevo proyecto.
+/*export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: {
+    schema: 'nuevo_proyecto' // <--- AQUÍ MANDAS LAS PETICIONES AL NUEVO CAJÓN
+  }
+})*/
 
 export interface Bancal {
   id: string;
