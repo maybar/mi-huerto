@@ -58,6 +58,32 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
   const handleAddBancal = async () => {
     const existingBancales = bancales.filter(b => b.lado === newBancalSide);
     const nextPosition = existingBancales.length;
+
+    // First, try to reactivate an inactive bancal on the same side
+    const { data: inactiveBancal } = await supabase
+      .from('bancales')
+      .select('*')
+      .eq('lado', newBancalSide)
+      .eq('activo', false)
+      .eq('fijo', false)
+      .limit(1)
+      .single();
+
+    if (inactiveBancal) {
+      // Reactivate the existing bancal
+      const { error } = await supabase
+        .from('bancales')
+        .update({ activo: true, posicion: nextPosition })
+        .eq('id', inactiveBancal.id);
+
+      if (!error) {
+        loadBancales();
+        setIsAddingBancal(false);
+        return;
+      }
+    }
+
+    // If no inactive bancal found, create a new one
     const nextLetter = String.fromCharCode(65 + bancales.length);
 
     const { data, error } = await supabase
@@ -85,7 +111,7 @@ export default function GardenLayout({ onSelectBancal, selectedBancalId, refresh
       return;
     }
     if (confirm('¿Estás seguro de eliminar este bancal?')) {
-      const { error } = await supabase.from('bancales').delete().eq('id', id);
+      const { error } = await supabase.from('bancales').update({ activo: false }).eq('id', id);
       if (error) {
         alert(error.message || 'No se pudo eliminar el bancal. Es posible que sea fijo y no se permita eliminarlo.');
       }

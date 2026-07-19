@@ -194,6 +194,22 @@ export async function seedInitialData() {
       info_luz: 'Pleno sol.',
       info_general: 'Sensible al frío. Trasplantar cuando no haya riesgo de heladas. Puede necesitar tutor.',
     },
+    {
+      nombre: 'Calabacín',
+      nombre_cientifico: 'Cucurbita pepo',
+      familia: 'Cucurbitaceae',
+      dias_germinacion: 8,
+      dias_cosecha: 60,
+      temp_germinacion_min: 18,
+      temp_germinacion_max: 25,
+      temp_crecimiento_min: 15,
+      temp_crecimiento_max: 30,
+      info_plagas: 'Pulgones, araña roja, mosca blanca, mildiu. Rotación de cultivos y control biológico.',
+      info_suelo: 'Suelo bien drenado, rico en materia orgánica. pH 6.0-7.0.',
+      info_riego: 'Riego regular, mantener suelo húmedo. Evitar mojar hojas para prevenir mildiu.',
+      info_luz: 'Pleno sol, mínimo 6-8 horas de luz directa.',
+      info_general: 'Crecimiento rápido y productivo. Cosechar frutos jóvenes (15-20cm) para mejor sabor. Puede crecer verticalmente para ahorrar espacio.',
+    },
   ];
 
   const { data: existingTipos } = await supabase.from('tipos_cultivo').select('nombre');
