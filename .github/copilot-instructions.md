@@ -26,10 +26,6 @@
 - UI refresh pattern: components accept a `refreshTrigger` or `onRefresh()` handler and call internal loaders (e.g., `loadCultivos()`) — follow this pattern when adding cross-component updates.
 - Seed script is **idempotent**: `seedInitialData()` checks for existing records before inserting. It's called once on app startup in `src/App.tsx`.
 
-## Schema / DB-specific notes ⚠️
-- The initial migration (`20251217162900_create_urban_garden_schema.sql`) creates the tables, constraints, RLS policies and an `update_updated_at` trigger for `cultivos`.
-- A later migration (`20251218103541_add_seedling_tray.sql`) adds a special `Semillero` (seed tray) by allowing `lado='semillero'`. Code expects a bancal with `lado === 'semillero'` and displays it separately (see `GardenLayout.tsx`).
-- RLS policies in migrations are very permissive (policy names start with "Anyone...") — be cautious if you harden RLS policies; tests / seed operations assume public access.
 
 ## Typical tasks & checklist for code changes 🎯
 - When changing table structure:
@@ -44,10 +40,7 @@
   - `supabase.from('cultivos').select('*, tipo_cultivo:tipos_cultivo(*)').eq('bancal_id', bancalId)`
 - Add a transplant event after updating a cultivo: see `CropManager.tsx#handleTransplant()` for the pattern (update cultivo then insert into `eventos_cultivo`).
 
-## Risks & gotchas 🔍
-- Semillero is treated specially in the UI and controlled by a migration. If you create/alter `bancales.lado` values, ensure migrations and UI remain in sync.
-- The client app uses the anon key with permissive RLS; do not assume server-side auth checks exist — if you harden RLS, update startup scripts and any local seeding/test flows.
-- There are no unit tests in the repo; rely on `npm run typecheck` and manual QA flows until tests are added.
+
 
 ---
 If anything above is unclear or you want the file to include more examples (e.g., sample Supabase CLI commands, recommended local .env setup, or a checklist for PR reviews), tell me which section to expand and I'll update it. ✅
